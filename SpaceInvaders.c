@@ -172,13 +172,14 @@ int main(void){
 	Random_Init(599);
   TExaS_Init();  												//set system clock to 80 MHz
   Random_Init(1);
-
+	ADC_Init();
   Output_Init();
 	
   ST7735_FillScreen(0x0000);            // set screen to black
 	populateTerrain(canvasSize);					//Populate Environment Array
 	
 	EnableInterrupts();
+	
   while(1){
 		paintEnvironment(ST7735_WHITE);
 		windowLocation--;
