@@ -62,8 +62,29 @@ writecommand
 ;4) Write the command to SSI0_DR_R
 ;5) Read SSI0_SR_R and check bit 4, 
 ;6) If bit 4 is high, loop back to step 5 (wait for BUSY bit to be low)
-
-    
+	LDR R1, =SSI0_SR_R
+	
+cannotTakeCommand	
+	LDR R2, [R1]
+	AND R2, #0x10
+	CMP R2, #0
+	BNE cannotTakeCommand
+	
+	LDR R1, =GPIO_PORTA_DATA_R
+	LDR	R2, [R1]
+	BIC R2, #0x40
+	STR R2, [R1]
+	
+	LDR R1, =SSI0_DR_R
+	STR R0, [R1]
+	
+	LDR R1, =SSI0_SR_R
+	
+cannotTakeCommand2	
+	LDR R2, [R1]
+	AND R2, #0x10
+	CMP R2, #0
+	BNE cannotTakeCommand2    
     
     BX  LR                          ;   return
 
@@ -76,11 +97,22 @@ writedata
 ;2) If bit 1 is low loop back to step 1 (wait for TNF bit to be high)
 ;3) Set D/C=PA6 to one
 ;4) Write the 8-bit data to SSI0_DR_R
-
-    
-    
-    BX  LR                          ;   return
-
+	LDR R1, =SSI0_SR_R
+cannotWriteData	
+    LDR R2, [R1]
+	AND R2, #0x02
+	CMP R2, #0
+	BEQ cannotWriteData
+	
+	LDR R1, =GPIO_PORTA_DATA_R
+	LDR R2, [R1]
+	ORR R2, #0x40
+	STR R2, [R1]
+	
+	LDR R1, =SSI0_DR_R
+	STR R0, [R1]
+	    
+    BX  LR
 
 ;***************************************************
 ; This is a library for the Adafruit 1.8" SPI display.
