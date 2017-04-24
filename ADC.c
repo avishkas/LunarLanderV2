@@ -50,7 +50,7 @@ void ADC_Init(void){
 // Busy-wait Analog to digital conversion
 // Input: none
 // Output: 12-bit result of ADC conversion
-uint32_t getXThruster(void){
+uint32_t ADC1_Input(void){
 	uint32_t data;
 	
   ADC0_PSSI_R = 0x0008;            
@@ -67,7 +67,7 @@ uint32_t getXThruster(void){
 // Busy-wait Analog to digital conversion
 // Input: none
 // Output: 12-bit result of ADC conversion
-uint32_t getYThruster(void){
+uint32_t ADC2_Input(void){
 	uint32_t data;
 	
   ADC0_PSSI_R = 0x0004;            
@@ -81,3 +81,21 @@ uint32_t getYThruster(void){
 		
 }
 
+int32_t getYThruster(void){
+	uint32_t data = ADC2_Input();
+	if(data < 500){
+		return 0;
+	}else{
+		return ((data-500)/2)/100;
+	}
+}
+
+int32_t getXThruster(void){
+	int32_t data = ADC1_Input();
+	if(data > 1750 && data < 2250){
+		return 0;
+	}else if (data <= 1750){
+		return (data - 1749)/100;
+	}
+	return (data - 2249)/100;
+}

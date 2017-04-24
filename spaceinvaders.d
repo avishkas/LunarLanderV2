@@ -5,3 +5,5 @@
 .\spaceinvaders.o: Random.h
 .\spaceinvaders.o: TExaS.h
 .\spaceinvaders.o: ADC.h
+.\spaceinvaders.o: PhysicsEngine.h
+.\spaceinvaders.o: EntityDefinition.h

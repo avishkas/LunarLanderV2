@@ -465,6 +465,11 @@
               <FileType>5</FileType>
               <FilePath>.\tm4c123gh6pm.h</FilePath>
             </File>
+            <File>
+              <FileName>PhysicsEngine.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PhysicsEngine.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

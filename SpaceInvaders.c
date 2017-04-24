@@ -55,6 +55,8 @@
 #include "Random.h"
 #include "TExaS.h"
 #include "ADC.h"
+#include "PhysicsEngine.h"
+#include "EntityDefinition.h"
 
 //Color Definitions
 #define _LCDWidth			 160
@@ -77,22 +79,41 @@ void EnableInterrupts(void);  // Enable interrupts
 void Delay100ms(uint32_t count); // time delay in 0.1 seconds
 
 int32_t TerrainHeight[canvasSize];
-int32_t windowLocation = 300;
+int32_t windowLocation = 0;
 
 // *************************** Capture image dimensions out of BMP**********
+const unsigned short spaceship[] = {
+ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+ 0xFFFF, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0x0000, 0x0000, 0xFFFF,
+ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000,
+ 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+ 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+ 0x0000, 0x0000, 0x0000, 0x0000,
+
+};
 
 // basic structure which all interacting objects are made of (spaceship, black hole, other shit)
-typedef struct {
-	uint32_t MASS;
-	uint8_t gravityAffected; //0 = not affected by gravity, everything else = yes
-	
-	int32_t xVelocity;
-	int32_t yVelocity;
-	
-	int32_t xPosition;
-	int32_t yPosition;
-}object;
 
+
+object entities[10];
+uint32_t numberOfEntities = 0;
+
+//initialize Player starting on platform
+//input: none
+//output: modifies entities[] to add player to 0th index
+void createPlayer(){
+	entities[0].MASS = 100;
+	entities[0].gravityAffected = 1;
+	
+	entities[0].xPosition = 5000;
+	entities[0].yPosition = 5000;
+	
+	entities[0].xVelocity = 0;
+	entities[0].yVelocity = 0;
+	
+	numberOfEntities = 1;
+}
 //**************************************************************  populateTerrain  *******************************************************************
 //Populate TerrainHeight[] using terrain generation algorithm
 //input: length of canvas
@@ -166,6 +187,23 @@ void paintEnvironment(uint16_t color){
 	ST7735_DrawFastHLine(0,159,128, ST7735_BLACK);
 }
 
+//****************************************************  SysTick Init and Handler  ********************************************************************
+
+void SysTick_Init(void){
+	NVIC_ST_CTRL_R &= ~0x01;
+	NVIC_ST_RELOAD_R = 4000000; //set to interrupt at 40Hz
+	NVIC_ST_CURRENT_R = 0;
+	NVIC_ST_CTRL_R |= 0x07;
+}
+void SysTick_Handler(void){
+	paintEnvironment(ST7735_WHITE);
+	ST7735_FillRect((entities[0].yPosition/100) - 5, (entities[0].xPosition/100) - 5, 10, 10, ST7735_BLACK);
+	updatePosition(numberOfEntities);
+	ST7735_DrawBitmap((entities[0].yPosition/100) - 5, (entities[0].xPosition/100) + 5, spaceship, 10, 10);
+}
+
+
+
 //************************************************************  MAIN  ********************************************************************************
 int main(void){
 	DisableInterrupts();
@@ -174,15 +212,20 @@ int main(void){
   Random_Init(1);
 	ADC_Init();
   Output_Init();
+	SysTick_Init();
 	
   ST7735_FillScreen(0x0000);            // set screen to black
 	populateTerrain(canvasSize);					//Populate Environment Array
 	
+	createPlayer();												
+	
 	EnableInterrupts();
 	
   while(1){
-		paintEnvironment(ST7735_WHITE);
-		windowLocation--;
+		
+		
+		
+	//	windowLocation--;
   }
 
 }
