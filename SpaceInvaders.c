@@ -106,8 +106,8 @@ void createPlayer(){
 	entities[0].MASS = 100;
 	entities[0].gravityAffected = 1;
 	
-	entities[0].xPosition = 5000;
-	entities[0].yPosition = 5000;
+	entities[0].xPosition = 2100;
+	entities[0].yPosition = 2100;
 	
 	entities[0].xVelocity = 0;
 	entities[0].yVelocity = 0;
@@ -200,6 +200,7 @@ void SysTick_Handler(void){
 	ST7735_FillRect((entities[0].yPosition/100) - 5, (entities[0].xPosition/100) - 5, 10, 10, ST7735_BLACK);
 	updatePosition(numberOfEntities);
 	ST7735_DrawBitmap((entities[0].yPosition/100) - 5, (entities[0].xPosition/100) + 5, spaceship, 10, 10);
+	collisionDetection(TerrainHeight);
 }
 
 
