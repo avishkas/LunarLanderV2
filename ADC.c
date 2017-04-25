@@ -86,7 +86,7 @@ int32_t getYThruster(void){
 	if(data < 500){
 		return 0;
 	}else{
-		return ((data-500)/2)/100;
+		return ((data-500)/2)/450;
 	}
 }
 
@@ -95,7 +95,7 @@ int32_t getXThruster(void){
 	if(data > 1750 && data < 2250){
 		return 0;
 	}else if (data <= 1750){
-		return (data - 1749)/100;
+		return (data - 1749)/450;
 	}
-	return (data - 2249)/100;
+	return (data - 2249)/450;
 }

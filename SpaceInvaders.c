@@ -106,8 +106,8 @@ void createPlayer(){
 	entities[0].MASS = 100;
 	entities[0].gravityAffected = 1;
 	
-	entities[0].xPosition = 2100;
-	entities[0].yPosition = 2100;
+	entities[0].xPosition = 4100;
+	entities[0].yPosition = 4100;
 	
 	entities[0].xVelocity = 0;
 	entities[0].yVelocity = 0;
@@ -133,7 +133,7 @@ void populateTerrain(uint32_t canvasLength){
 		int32_t r = Random();
 		r %= environmentStepSize;
 		
-		//check if you need to add or subtract
+		//check if you need to change to addition or subtraction
 		if(TerrainHeight[i-1] == maxTerrainHeight || TerrainHeight[i-1] == minTerrainHeight || i%40 == 24){
 			addORsub ^= 0x01;
 		}
@@ -158,7 +158,31 @@ void populateTerrain(uint32_t canvasLength){
 	for(; i < canvasSize; i++){
 		TerrainHeight[i] = 10;
 	}
+	
 }
+
+//****************************************************** updateWindowLocation ************************************************************************
+//input:none
+//output:updates windowLocation depending on location of ship
+void updateWindowLocation(void){
+	if((((entities[0].xPosition/100) -5) - windowLocation) < 30 && windowLocation > 0){
+		windowLocation--;
+	}else if((((entities[0].xPosition/100) - 5 - windowLocation) > 80 && (windowLocation + 160) < 499)){
+		windowLocation++;
+	}
+}
+
+
+//**********************************************************  paintShip ******************************************************************************
+//input: none
+//output: paints position of ship on screen relative to windowLocation
+void paintShip(){
+	ST7735_FillRect((entities[0].yPosition/100) - 5, (entities[0].xPosition/100) - 5 - windowLocation, 10, 10, ST7735_BLACK);
+	updatePosition(numberOfEntities);
+	ST7735_DrawBitmap((entities[0].yPosition/100) - 5, (entities[0].xPosition/100) + 5 - windowLocation, spaceship, 10, 10);
+}
+
+
 //**********************************************************  paintEnvironment  **********************************************************************
 //Paints environment on display, also paints black boundry along environment such that when camera pans, you don't have reset screen to black
 //inputs: none
@@ -196,14 +220,10 @@ void SysTick_Init(void){
 	NVIC_ST_CTRL_R |= 0x07;
 }
 void SysTick_Handler(void){
+	updateWindowLocation();
+	paintShip();
 	paintEnvironment(ST7735_WHITE);
-	ST7735_FillRect((entities[0].yPosition/100) - 5, (entities[0].xPosition/100) - 5, 10, 10, ST7735_BLACK);
-	updatePosition(numberOfEntities);
-	ST7735_DrawBitmap((entities[0].yPosition/100) - 5, (entities[0].xPosition/100) + 5, spaceship, 10, 10);
-	collisionDetection(TerrainHeight);
 }
-
-
 
 //************************************************************  MAIN  ********************************************************************************
 int main(void){
@@ -224,9 +244,6 @@ int main(void){
 	
   while(1){
 		
-		
-		
-	//	windowLocation--;
   }
 
 }
