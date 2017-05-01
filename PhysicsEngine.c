@@ -1,12 +1,54 @@
 #include <stdint.h>
 #include "tm4c123gh6pm.h"
-#include "ADC.h"
 #include "EntityDefinition.h"
 
 extern object entities[10];
 extern int32_t TerrainHeight[500];
+extern int8_t gameOver;
 
-uint8_t GRAVITY = 0;
+//lookup tables instantiated
+
+const int16_t sinLookUp[] = {
+0, 174, 348, 523, 697, 871, 1045, 1218, 1391, 1564, 1736, 1908, 2079, 2249, 2419, 2588, 2756, 2923, 3090, 3255, 
+3420, 3583, 3746, 3907, 4067, 4226, 4383, 4539, 4694, 4848, 5000, 5150, 5299, 5446, 5591, 5735, 5877, 6018, 6156, 6293, 
+6427, 6560, 6691, 6820, 6946, 7071, 7193, 7313, 7431, 7547, 7660, 7771, 7880, 7986, 8090, 8191, 8290, 8386, 8480, 8571, 
+8660, 8746, 8829, 8910, 8987, 9063, 9135, 9205, 9271, 9335, 9396, 9455, 9510, 9563, 9612, 9659, 9702, 9743, 9781, 9816, 
+9848, 9876, 9902, 9925, 9945, 9961, 9975, 9986, 9993, 9998, 10000, 9998, 9993, 9986, 9975, 9961, 9945, 9925, 9902, 9876, 
+9848, 9816, 9781, 9743, 9702, 9659, 9612, 9563, 9510, 9455, 9396, 9335, 9271, 9205, 9135, 9063, 8987, 8910, 8829, 8746, 
+8660, 8571, 8480, 8386, 8290, 8191, 8090, 7986, 7880, 7771, 7660, 7547, 7431, 7313, 7193, 7071, 6946, 6819, 6691, 6560, 
+6427, 6293, 6156, 6018, 5877, 5735, 5591, 5446, 5299, 5150, 4999, 4848, 4694, 4539, 4383, 4226, 4067, 3907, 3746, 3583, 
+3420, 3255, 3090, 2923, 2756, 2588, 2419, 2249, 2079, 1908, 1736, 1564, 1391, 1218, 1045, 871, 697, 523, 348, 174, 
+1, -174, -348, -523, -697, -871, -1045, -1218, -1391, -1564, -1736, -1908, -2079, -2249, -2419, -2588, -2756, -2923, -3090, -3255, 
+-3420, -3583, -3746, -3907, -4067, -4226, -4383, -4539, -4694, -4848, -5000, -5150, -5299, -5446, -5591, -5735, -5877, -6018, -6156, -6293, 
+-6427, -6560, -6691, -6819, -6946, -7071, -7193, -7313, -7431, -7547, -7660, -7771, -7880, -7986, -8090, -8191, -8290, -8386, -8480, -8571, 
+-8660, -8746, -8829, -8910, -8987, -9063, -9135, -9205, -9271, -9335, -9396, -9455, -9510, -9563, -9612, -9659, -9702, -9743, -9781, -9816, 
+-9848, -9876, -9902, -9925, -9945, -9961, -9975, -9986, -9993, -9998, -10000, -9998, -9993, -9986, -9975, -9961, -9945, -9925, -9902, -9876, 
+-9848, -9816, -9781, -9743, -9702, -9659, -9612, -9563, -9510, -9455, -9396, -9335, -9271, -9205, -9135, -9063, -8987, -8910, -8829, -8746, 
+-8660, -8571, -8480, -8386, -8290, -8191, -8090, -7986, -7880, -7771, -7660, -7547, -7431, -7313, -7193, -7071, -6946, -6819, -6691, -6560, 
+-6427, -6293, -6156, -6018, -5877, -5735, -5591, -5446, -5299, -5150, -5000, -4848, -4694, -4539, -4383, -4226, -4067, -3907, -3746, -3583, 
+-3420, -3255, -3090, -2923, -2756, -2588, -2419, -2249, -2079, -1908, -1736, -1564, -1391, -1218, -1045, -871, -697, -523, -348, -174, 0};
+	
+const int16_t cosLookUp[] = {
+10000, 9998, 9993, 9986, 9975, 9961, 9945, 9925, 9902, 9876, 9848, 9816, 9781, 9743, 9702, 9659, 9612, 9563, 9510, 9455, 
+9396, 9335, 9271, 9205, 9135, 9063, 8987, 8910, 8829, 8746, 8660, 8571, 8480, 8386, 8290, 8191, 8090, 7986, 7880, 7771, 
+7660, 7547, 7431, 7313, 7193, 7071, 6946, 6819, 6691, 6560, 6427, 6293, 6156, 6018, 5877, 5735, 5591, 5446, 5299, 5150, 
+5000, 4848, 4694, 4539, 4383, 4226, 4067, 3907, 3746, 3583, 3420, 3255, 3090, 2923, 2756, 2588, 2419, 2249, 2079, 1908, 
+1736, 1564, 1391, 1218, 1045, 871, 697, 523, 348, 174, 6, -174, -348, -523, -697, -871, -1045, -1218, -1391, -1564, 
+-1736, -1908, -2079, -2249, -2419, -2588, -2756, -2923, -3090, -3255, -3420, -3583, -3746, -3907, -4067, -4226, -4383, -4539, -4694, -4848, 
+-4999, -5150, -5299, -5446, -5591, -5735, -5877, -6018, -6156, -6293, -6427, -6560, -6691, -6819, -6946, -7071, -7193, -7313, -7431, -7547, 
+-7660, -7771, -7880, -7986, -8090, -8191, -8290, -8386, -8480, -8571, -8660, -8746, -8829, -8910, -8987, -9063, -9135, -9205, -9271, -9335, 
+-9396, -9455, -9510, -9563, -9612, -9659, -9702, -9743, -9781, -9816, -9848, -9876, -9902, -9925, -9945, -9961, -9975, -9986, -9993, -9998, 
+-10000, -9998, -9993, -9986, -9975, -9961, -9945, -9925, -9902, -9876, -9848, -9816, -9781, -9743, -9702, -9659, -9612, -9563, -9510, -9455, 
+-9396, -9335, -9271, -9205, -9135, -9063, -8987, -8910, -8829, -8746, -8660, -8571, -8480, -8386, -8290, -8191, -8090, -7986, -7880, -7771, 
+-7660, -7547, -7431, -7313, -7193, -7071, -6946, -6819, -6691, -6560, -6427, -6293, -6156, -6018, -5877, -5735, -5591, -5446, -5299, -5150, 
+-5000, -4848, -4694, -4539, -4383, -4226, -4067, -3907, -3746, -3583, -3420, -3255, -3090, -2923, -2756, -2588, -2419, -2249, -2079, -1908, 
+-1736, -1564, -1391, -1218, -1045, -871, -697, -523, -348, -174, -1, 174, 348, 523, 697, 871, 1045, 1218, 1391, 1564, 
+1736, 1908, 2079, 2249, 2419, 2588, 2756, 2923, 3090, 3255, 3420, 3583, 3746, 3907, 4067, 4226, 4383, 4539, 4694, 4848, 
+5000, 5150, 5299, 5446, 5591, 5735, 5877, 6018, 6156, 6293, 6427, 6560, 6691, 6819, 6946, 7071, 7193, 7313, 7431, 7547, 
+7660, 7771, 7880, 7986, 8090, 8191, 8290, 8386, 8480, 8571, 8660, 8746, 8829, 8910, 8987, 9063, 9135, 9205, 9271, 9335, 
+9396, 9455, 9510, 9563, 9612, 9659, 9702, 9743, 9781, 9816, 9848, 9876, 9902, 9925, 9945, 9961, 9975, 9986, 9993, 9998, 10000};
+
+uint8_t GRAVITY = 4;
 uint8_t shipOnGround = 0; //0 = ship is not on the ground, anything else = ship is on the ground
 
 //get approximate square root of given value
@@ -43,18 +85,31 @@ int32_t getDistance(int32_t x1, int32_t y1, int32_t x2, int32_t y2){
 	return getApproximateSquareRoot(distanceSquared);
 }
 
-
-
 //This function is only called when there exists a Black Hole somewhere on the map
 //THIS FUNCTION HAS NOT BEEN TESTED, TEST IT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-void checkInteractions(uint32_t size){
+void checkInteractions(uint32_t numberOfEntities){
 	uint8_t i;
-	for(i = 1; i < size; i++){
-		int32_t xDistanceBetween = entities[i].xPosition - entities[0].xPosition;
-		int32_t yDistanceBetween = entities[i].yPosition - entities[0].yPosition;
+	
+	//collision has occured
+	for(i = 0; i < numberOfEntities; i++){
+		if(((entities[0].xPosition/100 + 22) < entities[i].xPosition/100 && (entities[0].xPosition/100 + 22) > (entities[i].xPosition/100 - 20)) || 
+			((entities[0].xPosition/100 + 8) < entities[i].xPosition/100 && (entities[0].xPosition/100 + 8) > (entities[i].xPosition/100 - 20))){
+			
+			if(((entities[0].yPosition/100 + 21) > entities[i].yPosition/100 && (entities[0].yPosition/100 + 21) < entities[i].yPosition/100 + 20) ||
+				((entities[0].yPosition/100 + 6) > entities[i].yPosition/100 && (entities[0].yPosition/100 + 6) < entities[i].yPosition/100 + 20)){
+					gameOver = 1;			
+				}
+				
+		}
+	}
+	
+	//if ship has not crashed, then change velocity based on blackhole and ship position 
+	for(i = 1; i < numberOfEntities; i++){
+		int32_t xDistanceBetween = (entities[i].xPosition+1000) - (entities[0].xPosition + 1500);
+		int32_t yDistanceBetween = (entities[i].yPosition+1000) - (entities[0].yPosition + 1500);
 		
 		if(xDistanceBetween < 7500){
-			int32_t directDistanceBetween = getDistance(entities[0].xPosition, entities[0].yPosition, entities[i].xPosition, entities[i].yPosition);
+			int32_t directDistanceBetween = getDistance(entities[0].xPosition + 1500, entities[0].yPosition + 1500, entities[i].xPosition, entities[i].yPosition);
 			int32_t gravityBetween = entities[i].MASS/((directDistanceBetween/61)*(directDistanceBetween/61));		//divide by 61 because it makes it so that the gravity nice
 			entities[0].xVelocity += ((1000*gravityBetween)*((xDistanceBetween*1000)/directDistanceBetween))/1000000;		//add x component of gravityBetween to xVelocity
 			entities[0].yVelocity += ((1000*gravityBetween)*((yDistanceBetween*1000)/directDistanceBetween))/1000000;		//add y component of gravityBetween to yVelocity
@@ -65,39 +120,59 @@ void checkInteractions(uint32_t size){
 //checks if lunar lander has collided with terrain
 //input:	none
 //output: checks if ship has landed/collided with objects and sets values to if certain conditions are met
-void collisionDetection(){
-	if(shipOnGround == 0 && ((entities[0].yPosition/100)-6) <= TerrainHeight[(entities[0].xPosition/100)-5] && ((entities[0].yPosition/100) - 6) <= TerrainHeight[(entities[0].xPosition/100) + 5]){
-		shipOnGround = 1;
-		entities[0].yVelocity = 0;
-		entities[0].xVelocity = 0;
+void collisionDetection(int32_t shipAngle){
+	//if ship has landed
+	if(shipOnGround == 0 && ((entities[0].yPosition/100)+7) <= TerrainHeight[(entities[0].xPosition/100)+8] && ((entities[0].yPosition/100) + 7) <= TerrainHeight[(entities[0].xPosition/100) + 22] && shipOnGround == 0){
+		if(shipAngle == 90){
+			shipOnGround = 1;
+			entities[0].yVelocity = 0;
+			entities[0].xVelocity = 0;
+		}else{
+			gameOver = 1;
+		}
 	}
-	if((entities[0].yPosition/100)-6 > TerrainHeight[(entities[0].xPosition/100)-5]){
+	
+	//ships y and x position is at botttom left corner of buffer
+	//ship has crashed, if a bottom corner of the ship is below the terrain and the other isnt, then you're ship has crashed
+	if((entities[0].yPosition/100 + 6 <= TerrainHeight[(entities[0].xPosition/100) + 8]) && entities[0].yPosition/100 + 6 > TerrainHeight[(entities[0].xPosition)/100 + 22]){
+		gameOver = 1;
+	}
+	if((entities[0].yPosition/100 + 6 <= TerrainHeight[(entities[0].xPosition/100) + 22]) && entities[0].yPosition/100 + 6 > TerrainHeight[(entities[0].xPosition)/100 + 8]){
+		gameOver = 1;
+	}
+	
+	//ship is about to take off
+	if((entities[0].yPosition/100)+7 > TerrainHeight[(entities[0].xPosition/100) + 15] && shipOnGround == 1){
 		shipOnGround = 0;
 	}
+	
 }
 
-void updateVelocity(int32_t xThrust, int32_t yThrust, uint32_t numberOfEntities){
-	collisionDetection();
+int32_t getXComponentVelocity(int32_t angle, int32_t yThrust){
+	return (yThrust*cosLookUp[angle])/4000000;
+}
+
+int32_t getYComponentVelocity(int32_t angle, int32_t yThrust){
+	return (yThrust*sinLookUp[angle]/4000000);
+}
+
+void updateVelocity(int32_t shipAngle, int32_t yThrust, uint32_t numberOfEntities){
 	if(numberOfEntities > 1){
 		checkInteractions(numberOfEntities);
 	}
-	if(shipOnGround == 1 && yThrust == 0){				// if ship is on ground and not applying thrust, x and y velocities are 0
-		entities[0].yVelocity = 0;
-		entities[0].xVelocity = 0;
-	}else if(shipOnGround == 1 && yThrust != 0){	// if ship is on ground and thrust is non-zero, then see if thrust is enough to launch, otherwise 
-		if(yThrust - GRAVITY < 0){									// set y-velocity to zero
-			entities[0].yVelocity = 0;
-		}else{
-			entities[0].yVelocity = entities[0].yVelocity + yThrust - GRAVITY;
-		}
-	}else{																				// if ship is not on ground, then change velocity depending on thrust and gravity
-		entities[0].xVelocity = entities[0].xVelocity + xThrust;
-		entities[0].yVelocity = entities[0].yVelocity + yThrust - GRAVITY;
+	if(shipOnGround == 0){
+		entities[0].xVelocity += getXComponentVelocity(shipAngle, yThrust);
+		entities[0].yVelocity += getYComponentVelocity(shipAngle, yThrust)- GRAVITY;
+	}else{
+		entities[0].yVelocity += getYComponentVelocity(shipAngle, yThrust);
+		entities[0].xVelocity += getXComponentVelocity(shipAngle, yThrust);
 	}
+	collisionDetection(shipAngle);
 }
 
-void updatePosition(uint32_t size){
-	updateVelocity(getXThruster(), getYThruster(), size);
+void updatePosition(int32_t shipAngle, int32_t yThrust, uint32_t numberOfEntities){
+	updateVelocity(shipAngle, yThrust, numberOfEntities);
 	entities[0].xPosition += entities[0].xVelocity;
 	entities[0].yPosition += entities[0].yVelocity;
+	
 }

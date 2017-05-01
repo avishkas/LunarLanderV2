@@ -8,8 +8,8 @@
 // Output: none
 void ADC_Init(void){ 
 	volatile uint32_t delay;
-	SYSCTL_RCGC2_R |= 0x10;				//initialze clock for Port E
-	delay = SYSCTL_RCGC2_R;
+	SYSCTL_RCGCGPIO_R |= 0x10;				//initialze clock for Port E
+	delay = SYSCTL_RCGCGPIO_R;
 	
 	GPIO_PORTE_DIR_R &= ~(0x04);	//set PE2 to input
 	GPIO_PORTE_DEN_R &= ~(0x04);	//set digital enable off for 0x02
@@ -51,16 +51,16 @@ void ADC_Init(void){
 // Input: none
 // Output: 12-bit result of ADC conversion
 uint32_t ADC1_Input(void){
-	uint32_t data;
+	uint32_t data0;
 	
   ADC0_PSSI_R = 0x0008;            
   while((ADC0_RIS_R&0x08)==0){}
 		
-  data = ADC0_SSFIFO3_R&0xFFF; 
+  data0 = ADC0_SSFIFO3_R&0xFFF; 
 		
   ADC0_ISC_R = 0x0008; 
 		
-  return data;
+  return data0;
 		
 }
 
@@ -68,34 +68,33 @@ uint32_t ADC1_Input(void){
 // Input: none
 // Output: 12-bit result of ADC conversion
 uint32_t ADC2_Input(void){
-	uint32_t data;
+	uint32_t data1;
 	
   ADC0_PSSI_R = 0x0004;            
   while((ADC0_RIS_R&0x04)==0){}
 		
-  data = ADC0_SSFIFO2_R&0xFFF; 
+  data1 = ADC0_SSFIFO2_R&0xFFF; 
 		
   ADC0_ISC_R = 0x0004; 
 		
-  return data;
+  return data1;
 		
 }
 
-int32_t getYThruster(void){
-	uint32_t data = ADC2_Input();
-	if(data < 500){
+int32_t getYThrust(void){
+	uint32_t data2 = ADC2_Input();
+	if(data2 < 50){
 		return 0;
 	}else{
-		return ((data-500)/2)/450;
+		return data2;
 	}
 }
 
-int32_t getXThruster(void){
-	int32_t data = ADC1_Input();
-	if(data > 1750 && data < 2250){
-		return 0;
-	}else if (data <= 1750){
-		return (data - 1749)/450;
+int32_t getShipAngle(void){
+	int32_t data3 = ADC1_Input();
+	data3 = (((((((4095-data3)*1000)/4090)*18)/1000)*15)-45); //processes ADC input into value 0-180 in chunks of 18
+	if(data3 < 0){
+		data3 += 360;
 	}
-	return (data - 2249)/450;
+	return data3 ; //return a value between 0 and 180 to 
 }

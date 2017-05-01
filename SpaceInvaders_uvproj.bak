@@ -127,7 +127,7 @@
             <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
             <RestoreFunctions>1</RestoreFunctions>
             <RestoreToolbox>1</RestoreToolbox>
-            <LimitSpeedToRealTime>0</LimitSpeedToRealTime>
+            <LimitSpeedToRealTime>1</LimitSpeedToRealTime>
             <RestoreSysVw>1</RestoreSysVw>
           </Simulator>
           <Target>
@@ -464,6 +464,16 @@
               <FileName>tm4c123gh6pm.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\tm4c123gh6pm.h</FilePath>
+            </File>
+            <File>
+              <FileName>PhysicsEngine.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\PhysicsEngine.c</FilePath>
+            </File>
+            <File>
+              <FileName>trigLookUp.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\trigLookUp.h</FilePath>
             </File>
           </Files>
         </Group>

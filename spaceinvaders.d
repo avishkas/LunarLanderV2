@@ -7,3 +7,8 @@
 .\spaceinvaders.o: ADC.h
 .\spaceinvaders.o: PhysicsEngine.h
 .\spaceinvaders.o: EntityDefinition.h
+.\spaceinvaders.o: DAC.h
+.\spaceinvaders.o: trigLookUp.h
+.\spaceinvaders.o: images.h
+.\spaceinvaders.o: Timer0.h
+.\spaceinvaders.o: Sound.h

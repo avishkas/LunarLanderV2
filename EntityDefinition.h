@@ -9,4 +9,7 @@ typedef struct {
 	
 	int32_t xPosition;
 	int32_t yPosition;
+	
+	const unsigned short *image;
+	
 }object;
