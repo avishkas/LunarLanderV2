@@ -8,9 +8,9 @@ Project File Date:  04/30/2017
 
 <h2>Output:</h2>
 Build target 'SpaceInvaders'
-compiling SpaceInvaders.c...
+compiling Timer1.c...
 linking...
-Program Size: Code=8624 RO-data=7736 RW-data=128 ZI-data=5256  
+Program Size: Code=6620 RO-data=6940 RW-data=136 ZI-data=5456  
 ".\SpaceInvaders.axf" - 0 Error(s), 0 Warning(s).
 Load "C:\\Keil\\EE319Kware\\lab10-avishka\\SpaceInvaders.axf" 
 Connecting: Mode=JTAG, Speed=1000000Hz
@@ -20,17 +20,28 @@ Verify OK.
 </pre>
 </body>
 </html>
-rget DLL has been cancelled
-data=128 ZI-data=5256  
-".\SpaceInvaders.axf" - 0 Error(s), 0 Warning(s).
-Load "C:\\Keil\\EE319Kware\\lab10-avishka\\SpaceInvaders.axf" 
-Connecting: Mode=JTAG, Speed=1000000Hz
-Connection failed!, error code=&d
-Error: Flash Download failed  -  Target DLL has been cancelled
-Load "C:\\Keil\\EE319Kware\\lab10-avishka\\SpaceInvaders.axf" 
+E319Kware\\lab10-avishka\\SpaceInvaders.axf" 
 Connecting: Mode=JTAG, Speed=1000000Hz
 Erase Done.
 Programming Done.
 Verify OK.
-compiling ADC.c...
-"ADC.c" - 0 Error(s), 0 Warning(s).
+).
+Done.
+Verify OK.
+rogramming Done.
+Verify OK.
+
+        GPIO_PORTF_LOCK_R = 0x4C4F434B;   // unlock GPIO Port F 
+Button.c(10): error:  #20: identifier "GPIO_PORTF_CR_R" is undefined
+        GPIO_PORTF_CR_R = 0x1F;           // allow changes to PF0
+Button.c(11): error:  #20: identifier "GPIO_PORTF_DIR_R" is undefined
+        GPIO_PORTF_DIR_R &= ~(0x11);                    // set all as input (0)
+Button.c(12): error:  #20: identifier "GPIO_PORTF_AFSEL_R" is undefined
+        GPIO_PORTF_AFSEL_R &= ~(0x11);          // turn off alternate function
+Button.c(13): error:  #20: identifier "GPIO_PORTF_PUR_R" is undefined
+        GPIO_PORTF_PUR_R |= 0x11;                                       // place pull up resistors for PF4 and PF0
+Button.c(14): error:  #20: identifier "GPIO_PORTF_DEN_R" is undefined
+        GPIO_PORTF_DEN_R |= 0x11;                                       // set digital enable on
+Button.c: 0 warnings, 10 errors
+".\SpaceInvaders.axf" - 10 Error(s), 0 Warning(s).
+Target not created

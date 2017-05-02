@@ -45,7 +45,7 @@ void Timer0_Init(void(*task)(void), uint32_t period){
   NVIC_PRI4_R = (NVIC_PRI4_R&0x00FFFFFF)|0x20000000; // 8) priority 4
 // interrupts enabled in the main program after all devices initialized
 // vector number 35, interrupt number 19
-  NVIC_EN0_R = 1<<19;           // 9) enable IRQ 19 in NVIC
+  NVIC_EN0_R =  0x040000;//1<<19;           // 9) enable IRQ 19 in NVIC
   TIMER0_CTL_R = 0x00000001;    // 10) enable TIMER0A
 }
 

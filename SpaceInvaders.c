@@ -62,6 +62,8 @@
 #include "images.h"
 #include "Timer0.h"
 #include "Sound.h"
+#include "Button.h"
+#include "Timer1.h"
 
 //Color Definitions
 #define _LCDWidth			 160
@@ -87,10 +89,12 @@ int32_t windowLocation = 0;
 int16_t previousAngle = 0;
 int32_t terrainDeleteOffset = 1;
 int8_t	gameOver = 0;
+int8_t	hoverActivated = 0;
 
 unsigned short bitmapMatrix[30][30];
 
 object entities[10];
+asteroid asteroidObjects[10];
 uint32_t numberOfEntities = 1;
 
 //initialize Player starting on platform
@@ -98,7 +102,7 @@ uint32_t numberOfEntities = 1;
 //output: modifies entities[] to add player to 0th index
 void createPlayer(){
 	entities[0].MASS = 100;
-	entities[0].gravityAffected = 1;
+	entities[0].shipAngle = 0;
 	
 	entities[0].xPosition = 1000;
 	entities[0].yPosition = 1000;
@@ -170,7 +174,7 @@ void populateTerrain(uint32_t canvasLength){
 		entities[i].MASS = ((Random() % 10) + 1) *10000; 
 		
 		entities[i].image = blackhole;
-		//numberOfEntities++;
+		numberOfEntities++;
 		
 	}
 }
@@ -194,7 +198,6 @@ void updateWindowLocation(void){
 
 int32_t getNewY(int32_t shipAngle, uint8_t currentXPixel, uint8_t currentYPixel){
 	int32_t xPortion = (((currentXPixel-(_SpaceshipWidth/2))* sinLookUp[shipAngle]));
-	
 	if(xPortion >= 0){
 		if((xPortion % 10000) >= 5000){
 			int32_t add = 10000 - (xPortion % 10000);
@@ -208,11 +211,9 @@ int32_t getNewY(int32_t shipAngle, uint8_t currentXPixel, uint8_t currentYPixel)
 			xPortion -= sub;
 		}
 	}
-	
 	xPortion /= 10000;
 	
 	int32_t yPortion = (((currentYPixel-(_SpaceshipHeight/2)) * cosLookUp[shipAngle]));
-	
 	if(yPortion >=0){
 		if((yPortion % 10000) >= 5000){
 			int32_t add = 10000 - (yPortion % 10000);
@@ -226,7 +227,6 @@ int32_t getNewY(int32_t shipAngle, uint8_t currentXPixel, uint8_t currentYPixel)
 			yPortion -= sub;
 		}
 	}
-	
 	yPortion /= 10000;
 	
 	return yPortion - xPortion;
@@ -377,7 +377,7 @@ void SysTick_Init(void){
 	NVIC_ST_CTRL_R &= ~0x01;
 	NVIC_ST_RELOAD_R = 8000000; //set to interrupt at 40Hz
 	NVIC_ST_CURRENT_R = 0;
-	NVIC_SYS_PRI3_R = (NVIC_SYS_PRI3_R&0x00FFFFFF)|0x40000000;
+	NVIC_SYS_PRI3_R = (NVIC_SYS_PRI3_R&0x00FFFFFF)|0x40000000; //set to priority 3
 	NVIC_ST_CTRL_R |= 0x07;
 }
 
@@ -393,15 +393,61 @@ void matrixInit(void){
 }
 
 void SysTick_Handler(void){
+	/*int32_t yThrust;
+	static int32_t shipAngle;
 	
-	int32_t yThrust = getYThrust();
-	int32_t shipAngle = getShipAngle();
+	//if hover is activated, the ship starts to autocorrect----------!!!!!!!!!THIS CODE HAS NOT BEEN TESTED!!!!!!!!!!!1------------
+	if((GPIO_PORTF_DATA_R & 0x01) == 1){ //PF0 negative logic, so if button not pressed
+		yThrust = getYThrust();
+		entities[0].shipAngle = getShipAngle();
+		shipAngle = entities[0].shipAngle * 10;
+	}else{
+		if(entities[0].xVelocity > 0 && entities[0].xVelocity > 2){
+			
+			if((shipAngle/10) > 170){
+				if((shipAngle/10) >= 270){
+					shipAngle = (shipAngle + 60)%3600;
+				}else{
+					shipAngle -= 60;
+				}
+			}else if((shipAngle/10) < 170){
+				shipAngle += 60;
+			}
+			entities[0].shipAngle = shipAngle/10;
+			
+		}else if(entities[0].xVelocity < 0 && entities[0].xVelocity < -2){
+			
+			if((shipAngle/10) > 10){
+				if((shipAngle/10) <= 270){
+					shipAngle -= 60;
+				}
+				if((shipAngle/10) > 270){
+					shipAngle = (shipAngle + 60) % 3600;
+				} 
+			}else if((shipAngle/10) < 10){
+				shipAngle += 60;
+			}
+			entities[0].shipAngle = shipAngle/10;
+		}else{
+			if((shipAngle/10) > 90){
+				shipAngle -= 60;
+			}else if ((shipAngle/10) < 90){
+				shipAngle += 60;
+			}
+			entities[0].shipAngle = 90;
+		}
+		
+		if(entities[0].yVelocity > 0 && entities[0].xVelocity < 2 && entities[0].xVelocity > -2){
+			yThrust = 0;
+		}else if(entities[0].yVelocity <0 || entities[0].xVelocity > 2|| entities[0].xVelocity < -2){
+			yThrust = 4095;
+		}
+	}
 	
-	
-	updatePosition(shipAngle, yThrust, numberOfEntities); //size of array, just set 0 for now 
+	updatePosition(shipAngle/10, yThrust, numberOfEntities); //size of array, just set 0 for now 
 	updateWindowLocation();
-	paintShip(shipAngle, yThrust);
-	paintEnvironment(ST7735_WHITE);
+	paintShip(shipAngle/10, yThrust);
+	paintEnvironment(ST7735_WHITE);*/
 }
 
 //************************************************************  MAIN  ********************************************************************************
@@ -414,13 +460,17 @@ int main(void){
 	ADC_Init();
   Output_Init();
 	SysTick_Init();
+	Button_Init();
 	
-	/*//timer init
-	void (*playSound)();
+	//timer0a init
+	/*void (*playSound)();
 	playSound = &Sound_Play;
 	Timer0_Init(playSound, 7256);//11.025kHZ sampling rate
 	*/
 	ST7735_SetRotation(2);
+	
+	//timer1 init
+	Timer1_Init(1000);
 	
 	matrixInit();
 	

@@ -85,8 +85,9 @@ int32_t getDistance(int32_t x1, int32_t y1, int32_t x2, int32_t y2){
 	return getApproximateSquareRoot(distanceSquared);
 }
 
-//This function is only called when there exists a Black Hole somewhere on the map
-//THIS FUNCTION HAS NOT BEEN TESTED, TEST IT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//this method checks the interactions between blackholes and the ship and changes the velocity accordingly, also checks if ship has collided with blackhole
+//input: number of entities on map
+//output: modifies ship xVelocity and ship yVelocity
 void checkInteractions(uint32_t numberOfEntities){
 	uint8_t i;
 	
@@ -146,6 +147,8 @@ void collisionDetection(int32_t shipAngle){
 		shipOnGround = 0;
 	}
 	
+	//ship has collided with asteroids
+	
 }
 
 int32_t getXComponentVelocity(int32_t angle, int32_t yThrust){
@@ -157,9 +160,7 @@ int32_t getYComponentVelocity(int32_t angle, int32_t yThrust){
 }
 
 void updateVelocity(int32_t shipAngle, int32_t yThrust, uint32_t numberOfEntities){
-	if(numberOfEntities > 1){
-		checkInteractions(numberOfEntities);
-	}
+	checkInteractions(numberOfEntities);
 	if(shipOnGround == 0){
 		entities[0].xVelocity += getXComponentVelocity(shipAngle, yThrust);
 		entities[0].yVelocity += getYComponentVelocity(shipAngle, yThrust)- GRAVITY;

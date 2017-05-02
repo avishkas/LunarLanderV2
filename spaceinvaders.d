@@ -12,3 +12,5 @@
 .\spaceinvaders.o: images.h
 .\spaceinvaders.o: Timer0.h
 .\spaceinvaders.o: Sound.h
+.\spaceinvaders.o: Button.h
+.\spaceinvaders.o: Timer1.h
