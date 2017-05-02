@@ -14,3 +14,4 @@
 .\spaceinvaders.o: Sound.h
 .\spaceinvaders.o: Button.h
 .\spaceinvaders.o: Timer1.h
+.\spaceinvaders.o: Menu.h

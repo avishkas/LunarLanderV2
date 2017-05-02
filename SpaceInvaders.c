@@ -64,6 +64,7 @@
 #include "Sound.h"
 #include "Button.h"
 #include "Timer1.h"
+#include "Menu.h"
 
 //Color Definitions
 #define _LCDWidth			 160
@@ -72,7 +73,7 @@
 
 //Canvas and Terrain Properties
 #define canvasSize 500
-#define maxTerrainHeight 40
+
 #define minTerrainHeight 0
 #define environmentStepSize 3
 
@@ -86,16 +87,22 @@ void Delay100ms(uint32_t count); // time delay in 0.1 seconds
 
 int32_t TerrainHeight[canvasSize];
 int32_t windowLocation = 0;
-int16_t previousAngle = 0;
 int32_t terrainDeleteOffset = 1;
-int8_t	gameOver = 0;
+int8_t	crashed = 0;
 int8_t	hoverActivated = 0;
+int8_t maxTerrainHeight;
+int16_t fuel;
+uint8_t numberOfLandings = 0;
+uint32_t seed = 0;
 
 unsigned short bitmapMatrix[30][30];
-
 object entities[10];
 asteroid asteroidObjects[10];
 uint32_t numberOfEntities = 1;
+
+gameState currentGameState = Menu;
+difficulty currentDifficulty = Easy;
+
 
 //initialize Player starting on platform
 //input: none
@@ -105,7 +112,7 @@ void createPlayer(){
 	entities[0].shipAngle = 0;
 	
 	entities[0].xPosition = 1000;
-	entities[0].yPosition = 1000;
+	entities[0].yPosition = 750;
 	
 	entities[0].xVelocity = 0;
 	entities[0].yVelocity = 0;
@@ -125,7 +132,7 @@ void populateTerrain(uint32_t canvasLength){
 	}
 	
 	//generate actual terrain
-	for(;i < canvasSize - 20; i++){
+	for(;i < canvasSize - 40; i++){
 		int32_t r = Random();
 		r %= environmentStepSize;
 		
@@ -155,26 +162,29 @@ void populateTerrain(uint32_t canvasLength){
 		TerrainHeight[i] = 10;
 	}
 	
-	//create random number of blackholes
-	uint8_t numberOfBlackHoles = 2 + (Random() % 4);
-	uint32_t spacing = canvasSize/(numberOfBlackHoles+1); //add 1 because the intial placing is based on numberrOfBlackHoles so the max i would equal the end border without the + 1
-	for(i = 1; i < numberOfBlackHoles + 1; i++){
-		int32_t xOffset = Random32() % 3000;
+	if(currentDifficulty != Easy){
+		//create random number of blackholes
+		uint8_t numberOfBlackHoles = 2 + (Random() % 3);
+		uint32_t spacing = canvasSize/(numberOfBlackHoles+1) + 5; //add 1 because the intial placing is based on numberrOfBlackHoles so the max i would equal the end border without the + 1
 		
-		//if the value is odd then make it negative, just to add some more randomness kinda
-		if((xOffset & 0x1) == 1){
-			xOffset *= -1;
+		for(i = 1; i < numberOfBlackHoles + 1; i++){
+			int32_t xOffset = Random32() % 3000;
+		
+			//if the value is odd then make it negative, just to add some more randomness kinda
+			if((xOffset & 0x1) == 1){
+				xOffset *= -1;
+			}
+			entities[i].xPosition = (spacing*i) * 100 + xOffset;
+		
+			//set Y position (has to be higher than max terrain height i.e +5000)
+			int32_t yOffset = (Random32()*200) % 3000;
+			entities[i].yPosition = yOffset + 5000;
+		
+			entities[i].MASS = ((Random() % 5) + 1) *10000; 
+		
+			entities[i].image = blackhole;
+			numberOfEntities++;
 		}
-		entities[i].xPosition = (spacing*i) * 100 + xOffset;
-		
-		//set Y position (has to be higher than max terrain height i.e +5000)
-		int32_t yOffset = Random32() % 3000;
-		entities[i].yPosition = yOffset + 5000;
-		
-		entities[i].MASS = ((Random() % 10) + 1) *10000; 
-		
-		entities[i].image = blackhole;
-		numberOfEntities++;
 		
 	}
 }
@@ -185,7 +195,7 @@ void populateTerrain(uint32_t canvasLength){
 void updateWindowLocation(void){
 	terrainDeleteOffset = 1;
 	uint32_t windowLocationDelta = 0;
-	if(((entities[0].xPosition/100) - windowLocation) > 50 && (windowLocation + 160 + (entities[0].xVelocity)/100) < 499  && entities[0].xVelocity >= 0){
+	if(((entities[0].xPosition/100) - windowLocation) > 50 && (windowLocation + 160 + (entities[0].xVelocity)/100) < 499 ){
 		windowLocationDelta = (entities[0].xVelocity)/100;
 		terrainDeleteOffset = windowLocationDelta;
 		if(windowLocationDelta == 0){
@@ -330,7 +340,6 @@ void drawRotatedShip(int32_t shipAngle, int32_t thrust){
 //input: none
 //output: paints position of ship on screen relative to windowLocation
 void paintShip(int32_t shipAngle, int32_t yThrust){
-	previousAngle = shipAngle;
 	drawRotatedShip(shipAngle, yThrust);	
 }
 
@@ -366,7 +375,7 @@ void paintEnvironment(uint16_t color){
 	
 	//paint Space Objects (blackholes, asteroids)
 	for(i = 1; i <= numberOfEntities; i++){
-		ST7735_DrawBitmap((entities[i].yPosition/100), (entities[i].xPosition/100-windowLocation), entities[i].image, 20, 20);
+		ST7735_DrawBitmap((entities[i].yPosition/100), (entities[i].xPosition/100-windowLocation), entities[i].image, 25, 25);
 	}
 	
 }
@@ -378,7 +387,6 @@ void SysTick_Init(void){
 	NVIC_ST_RELOAD_R = 8000000; //set to interrupt at 40Hz
 	NVIC_ST_CURRENT_R = 0;
 	NVIC_SYS_PRI3_R = (NVIC_SYS_PRI3_R&0x00FFFFFF)|0x40000000; //set to priority 3
-	NVIC_ST_CTRL_R |= 0x07;
 }
 
 void matrixInit(void){
@@ -392,8 +400,63 @@ void matrixInit(void){
 		
 }
 
+void paintAsteroids(){
+	uint8_t i;
+	for(i = 0; i < 10; i++){
+		if(asteroidObjects[i].active == 1){
+			ST7735_DrawBitmap(asteroidObjects[i].yPosition/100, asteroidObjects[i].xPosition/100 - windowLocation, asteroidObjects[i].image, 15, 15);
+			
+		}
+	}
+}
+
+void deleteAllOldImages(){
+	if((entities[0].xVelocity/100) > 7 || entities[0].yVelocity/100 > 7){
+		ST7735_FillRect(entities[0].yPosition/100 + 7, entities[0].xPosition/100 + 7 - windowLocation, 17, 16, backgroundColor);
+	}
+	if(terrainDeleteOffset > 4){
+		uint8_t i;
+		for(i = 1; i < 10; i++){
+			ST7735_FillRect((entities[i].yPosition/100), (entities[i].xPosition/100) - 19 - windowLocation, 25, 25, backgroundColor);
+		}
+}
+}
+
+void printData(int16_t value, uint16_t divisor, uint8_t iterations){
+	int16_t tempVal = value;
+	if(tempVal < 0){
+		ST7735_OutChar('-');
+		tempVal *= -1;
+	}
+	for(;iterations > 0; iterations--){
+		ST7735_OutChar((tempVal/divisor) + 48);
+		tempVal = tempVal - (tempVal/divisor)*divisor;
+		divisor /= 10;
+	}
+}
+
+void displayData(){
+	
+	//Data
+	ST7735_SetCursor(0,0);
+	ST7735_OutString("Fuel:");
+	printData(fuel, 10000, 5);
+	
+	
+	//yVel:
+	ST7735_SetCursor(0,1);
+	ST7735_OutString("yVel:");
+	printData(entities[0].yVelocity, 100, 3);
+	
+	//distance
+	ST7735_SetCursor(0,2);
+	ST7735_OutString("Distance:");
+	printData(500 - entities[0].xPosition/100, 100, 3);
+	
+}
+
 void SysTick_Handler(void){
-	/*int32_t yThrust;
+	int32_t yThrust;
 	static int32_t shipAngle;
 	
 	//if hover is activated, the ship starts to autocorrect----------!!!!!!!!!THIS CODE HAS NOT BEEN TESTED!!!!!!!!!!!1------------
@@ -402,29 +465,29 @@ void SysTick_Handler(void){
 		entities[0].shipAngle = getShipAngle();
 		shipAngle = entities[0].shipAngle * 10;
 	}else{
-		if(entities[0].xVelocity > 0 && entities[0].xVelocity > 2){
+		if(entities[0].xVelocity > 0 && entities[0].xVelocity > 5){
 			
-			if((shipAngle/10) > 170){
+			if((shipAngle/10) > 135){
 				if((shipAngle/10) >= 270){
 					shipAngle = (shipAngle + 60)%3600;
 				}else{
 					shipAngle -= 60;
 				}
-			}else if((shipAngle/10) < 170){
+			}else if((shipAngle/10) < 135){
 				shipAngle += 60;
 			}
 			entities[0].shipAngle = shipAngle/10;
 			
-		}else if(entities[0].xVelocity < 0 && entities[0].xVelocity < -2){
+		}else if(entities[0].xVelocity < 0 && entities[0].xVelocity < -5){
 			
-			if((shipAngle/10) > 10){
+			if((shipAngle/10) > 45){
 				if((shipAngle/10) <= 270){
 					shipAngle -= 60;
 				}
 				if((shipAngle/10) > 270){
 					shipAngle = (shipAngle + 60) % 3600;
 				} 
-			}else if((shipAngle/10) < 10){
+			}else if((shipAngle/10) < 45){
 				shipAngle += 60;
 			}
 			entities[0].shipAngle = shipAngle/10;
@@ -437,73 +500,230 @@ void SysTick_Handler(void){
 			entities[0].shipAngle = 90;
 		}
 		
-		if(entities[0].yVelocity > 0 && entities[0].xVelocity < 2 && entities[0].xVelocity > -2){
+		if(entities[0].yVelocity > 0){
 			yThrust = 0;
-		}else if(entities[0].yVelocity <0 || entities[0].xVelocity > 2|| entities[0].xVelocity < -2){
+		}else if(entities[0].yVelocity < 0){
 			yThrust = 4095;
 		}
 	}
 	
+	deleteAllOldImages();
 	updatePosition(shipAngle/10, yThrust, numberOfEntities); //size of array, just set 0 for now 
 	updateWindowLocation();
 	paintShip(shipAngle/10, yThrust);
-	paintEnvironment(ST7735_WHITE);*/
+	paintAsteroids();
+	paintEnvironment(ST7735_WHITE);
+	displayData();
+	if(currentDifficulty == Easy){
+		NVIC_ST_CTRL_R |= 0x07;
+	}else{
+		NVIC_ST_CTRL_R |= 0x07;
+		TIMER1_CTL_R |= 0x01;
+	}
 }
 
+void PortA_Init(){
+	volatile uint32_t delay;
+	SYSCTL_RCGCGPIO_R |= 0x01;
+	delay = SYSCTL_RCGCGPIO_R;
+	delay = SYSCTL_RCGCGPIO_R;
+	delay = SYSCTL_RCGCGPIO_R;
+}
 //************************************************************  MAIN  ********************************************************************************
 int main(void){
 	DisableInterrupts();
+	PortA_Init();
+	Sound_Init();
 	DAC_Init();
-	Random_Init(599);
   TExaS_Init();  												//set system clock to 80 MHz
-  Random_Init(1);
+
 	ADC_Init();
   Output_Init();
 	SysTick_Init();
 	Button_Init();
 	
+	
 	//timer0a init
-	/*void (*playSound)();
+	
+	void (*playSound)(void);
 	playSound = &Sound_Play;
 	Timer0_Init(playSound, 7256);//11.025kHZ sampling rate
-	*/
-	ST7735_SetRotation(2);
+	
 	
 	//timer1 init
-	Timer1_Init(1000);
+	Timer1_Init();
 	
 	matrixInit();
 	
-
   ST7735_FillScreen(backgroundColor);    // set screen to backgroundColor
-	populateTerrain(canvasSize);					//Populate Environment Array
-	
-	
+	//populateTerrain(canvasSize);					//Populate Environment Array
+		
 	createPlayer();
 	
 	EnableInterrupts();
-	
-  while(1){
-		if(gameOver == 1){
-			break;
+  while(1){		
+		if((GPIO_PORTF_DATA_R & 0x10) == 0){
+			disableUneededInterrupts();
+			while((GPIO_PORTF_DATA_R & 0x10) == 0){}
+			
+			if(currentDifficulty == Easy){
+				NVIC_ST_CTRL_R |= 0x07;
+			}else{
+				NVIC_ST_CTRL_R |= 0x07;
+				TIMER1_CTL_R |= 0x01;
+			}	
+		}
+		
+		//these are the crash checks
+		if(currentGameState == Menu){
+			startMenu();
+			windowLocation = 0;
+			Random_Init(seed);
+			ST7735_FillScreen(backgroundColor);
+			fuel = 7000;
+			if(currentDifficulty == Easy){
+				
+				maxTerrainHeight = 40;
+				setSpawnRate(4000); //4 seconds
+				//we don't turn on astroids
+				populateTerrain(canvasSize);
+				
+				ST7735_SetRotation(2);
+				NVIC_ST_CTRL_R |= 0x07;			//interupts, and clock on
+			}else if(currentDifficulty == Medium){
+			
+				maxTerrainHeight = 40;
+				setSpawnRate(4000);
+				
+				populateTerrain(canvasSize);
+				
+				ST7735_SetRotation(2);
+				NVIC_ST_CTRL_R |= 0x07;
+				TIMER1_CTL_R = 1;
+			}else{
+				
+				maxTerrainHeight = 60;
+				setSpawnRate(2000); //2 seconds
+				
+				populateTerrain(canvasSize);
+				
+				ST7735_SetRotation(2);
+				NVIC_ST_CTRL_R |= 0x07;
+				TIMER1_CTL_R = 1;			
+			}
+			currentGameState = Gameplay;
+		}
+		if(crashed == 1 || crashed == 2){
+			
+			disableUneededInterrupts(); //disables systick and timer1
+			
+			
+			windowLocation = 0;
+			entities[0].xVelocity = 0;
+			entities[0].yVelocity = 0;
+			
+			entities[0].xPosition = 1000;
+			entities[0].yPosition = 750;
+			
+			if(crashed == 1){
+				ST7735_SetCursor(0,6);
+				ST7735_OutString("You Crashed!");
+				ST7735_SetCursor(0,7);
+			}else{
+				ST7735_SetCursor(0,6);
+				ST7735_OutString("You Flew Off The Map");
+				ST7735_SetCursor(0,7);
+			}
+			switch(currentDifficulty){
+				case Easy:
+					ST7735_OutString("Lost 500 Fuel");
+					fuel -= 500;	
+					break;
+				case Medium:
+					ST7735_OutString("Lost 1000 Fuel");
+					fuel -= 1000;
+					break;
+				case Hard:ST7735_OutString("Lost 2000 Fuel");
+					fuel -= 2000;
+					break;
+			}
+			if(fuel > 0){
+				Delay100ms(30);
+				ST7735_FillScreen(backgroundColor);
+			}
+			crashed = 0;
+			
+			if(currentDifficulty == Easy){
+				NVIC_ST_CTRL_R |= 0x07;
+			}else{
+				NVIC_ST_CTRL_R |= 0x07;
+				TIMER1_CTL_R |= 0x01;
+			}
+			
+		}
+		//not actually crashed, means ship has landed at position b Yay!
+		if(crashed == 3){
+			disableUneededInterrupts(); //disables systick and timer1
+			
+			
+			windowLocation = 0;
+			entities[0].xVelocity = 0;
+			entities[0].yVelocity = 0;
+			
+			entities[0].xPosition = 1000;
+			entities[0].yPosition = 1000;
+			
+			ST7735_SetCursor(0,6);
+			ST7735_OutString("Cargo Successfuly \nTransported!");
+			ST7735_SetCursor(0,8);
+			
+			
+			if(currentDifficulty == Easy){
+				fuel += 500;
+				ST7735_OutString("500 Fuel Gained!");
+			}else if( currentDifficulty == Medium){
+				fuel += 1000;
+				ST7735_OutString("1500 Fuel Gained!");
+			}else{
+				fuel += 3000;
+				ST7735_OutString("3000 Fuel Gained");
+			}
+			
+			Delay100ms(30);
+			
+			ST7735_FillScreen(backgroundColor);
+			
+			numberOfLandings++;
+			
+			crashed = 0;
+			
+			if(currentDifficulty == Easy){
+				NVIC_ST_CTRL_R |= 0x07;
+			}else{
+				NVIC_ST_CTRL_R |= 0x07;
+				TIMER1_CTL_R |= 0x01;
+			}
+			
+		}
+		if(fuel <= 0){
+			disableUneededInterrupts();
+			
+			ST7735_FillScreen(backgroundColor);
+			ST7735_SetCursor(0,5);
+			ST7735_OutString("You ran out of fuel!");
+			ST7735_SetCursor(0,8);
+			ST7735_OutString("Deliverd Cargo: ");
+			
+			//assumes no one gets above 99 landings. lol good luck with that
+			uint8_t digit = numberOfLandings / 10;
+			ST7735_OutChar(digit + 48);
+			digit = numberOfLandings % 10;
+			ST7735_OutChar(digit + 48);
+			
+			currentGameState = Menu;
+			
+			Delay100ms(50);
 		}
   }
-	DisableInterrupts();
-	ST7735_FillScreen(backgroundColor);
-	ST7735_SetCursor(4, 4);
-	ST7735_OutString("Game Over");
 	
-}
-
-
-// You can use this timer only if you learn how it works
-
-void Delay100ms(uint32_t count){uint32_t volatile time;
-  while(count>0){
-    time = 727240;  // 0.1sec at 80 MHz
-    while(time){
-	  	time--;
-    }
-    count--;
-  }
 }

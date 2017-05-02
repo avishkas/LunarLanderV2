@@ -18,11 +18,13 @@ void Sound_Init(void){
 	volatile uint32_t delay;
 	SYSCTL_RCGCGPIO_R = 0x02;
 	delay = SYSCTL_RCGCGPIO_R;
+	delay = SYSCTL_RCGCGPIO_R;
 	
-	GPIO_PORTB_DIR_R |= 0x3F;
-	GPIO_PORTB_DEN_R |= 0x3F;
+	
 	GPIO_PORTB_AFSEL_R &= ~(0x3F);
 	GPIO_PORTB_AMSEL_R &= ~(0x3F);
+	GPIO_PORTB_DIR_R |= 0x3F;
+	GPIO_PORTB_DEN_R |= 0x3F;
 };
 void Sound_Play(){
 	GPIO_PORTB_DATA_R = loop2[location]/4;

@@ -485,6 +485,11 @@
               <FileType>1</FileType>
               <FilePath>.\Button.c</FilePath>
             </File>
+            <File>
+              <FileName>Menu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Menu.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

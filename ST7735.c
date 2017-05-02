@@ -56,12 +56,19 @@
 #include <stdint.h>
 #include "ST7735.h"
 #include "tm4c123gh6pm.h"
+#include "Menu.h"
+#include "EntityDefinition.h"
+extern difficulty currentDifficulty;
 
 // 16 rows (0 to 15) and 21 characters (0 to 20)
 // Requires (11 + size*size*6*8) bytes of transmission for each character
 uint32_t StX=0; // position along the horizonal axis 0 to 20 
 uint32_t StY=0; // position along the vertical axis 0 to 15
 uint16_t StTextColor = ST7735_YELLOW;
+
+void DisableInterrupts(void); // Disable interrupts
+void EnableInterrupts(void);  // Enable interrupts
+
 
 #define ST7735_NOP     0x00
 #define ST7735_SWRESET 0x01
@@ -187,6 +194,15 @@ uint16_t StTextColor = ST7735_YELLOW;
 #define ST7735_GMCTRP1 0xE0
 #define ST7735_GMCTRN1 0xE1
 
+#define backgroundColor 0x38A7
+
+#define MADCTL_MY  0x80
+#define MADCTL_MX  0x40
+#define MADCTL_MV  0x20
+#define MADCTL_ML  0x10
+#define MADCTL_RGB 0x00
+#define MADCTL_BGR 0x08
+#define MADCTL_MH  0x04
 // standard ascii 5x7 font
 // originally from glcdfont.c from Adafruit project
 static const uint8_t Font[] = {
@@ -995,6 +1011,19 @@ void ST7735_DrawBitmap(int16_t x, int16_t y, const uint16_t *image, int16_t w, i
 //        size      number of pixels per character pixel (e.g. size==2 prints each pixel of font as 2x2 square)
 // Output: none
 void ST7735_DrawCharS(int16_t x, int16_t y, char c, int16_t textColor, int16_t bgColor, uint8_t size){
+	bgColor = backgroundColor;
+	textColor = 0xFFFF;
+	disableUneededInterrupts();
+	
+	writecommand(ST7735_MADCTL);
+	if (TabColor == INITR_BLACKTAB) {
+		writedata(MADCTL_MX | MADCTL_MV | MADCTL_RGB);
+  } else {
+    writedata(MADCTL_MX | MADCTL_MV | MADCTL_BGR);
+  }
+  _width  = ST7735_TFTHEIGHT;
+  _height = ST7735_TFTWIDTH;
+		 
   uint8_t line; // vertical column of pixels of character in font
   int32_t i, j;
   if((x >= _width)            || // Clip right
@@ -1025,6 +1054,16 @@ void ST7735_DrawCharS(int16_t x, int16_t y, char c, int16_t textColor, int16_t b
       line >>= 1;
     }
   }
+	
+	writecommand(ST7735_MADCTL);
+	if (TabColor == INITR_BLACKTAB) {
+    writedata(MADCTL_RGB);
+  } else {
+    writedata(MADCTL_BGR);
+  }
+  _width  = ST7735_TFTWIDTH;
+  _height = ST7735_TFTHEIGHT;
+	
 }
 
 
@@ -1157,13 +1196,13 @@ void ST7735_OutUDec(uint32_t n){
 
 
 
-#define MADCTL_MY  0x80
+/*#define MADCTL_MY  0x80
 #define MADCTL_MX  0x40
 #define MADCTL_MV  0x20
 #define MADCTL_ML  0x10
 #define MADCTL_RGB 0x00
 #define MADCTL_BGR 0x08
-#define MADCTL_MH  0x04
+#define MADCTL_MH  0x04*/
 
 //------------ST7735_SetRotation------------
 // Change the image rotation.

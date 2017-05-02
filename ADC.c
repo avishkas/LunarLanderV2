@@ -86,7 +86,7 @@ int32_t getYThrust(void){
 	if(data2 < 50){
 		return 0;
 	}else{
-		return data2;
+		return (data2*3)/2;
 	}
 }
 

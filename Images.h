@@ -6,3 +6,4 @@ extern const unsigned short asteroidLeft[];
 extern const unsigned short asteroidRightWhite[];
 extern const unsigned short asteroidLeftWhite[];
 extern const unsigned short asteroidBlank[];
+extern const unsigned short menu[];

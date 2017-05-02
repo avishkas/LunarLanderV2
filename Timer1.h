@@ -29,6 +29,7 @@
 // Inputs:  task is a pointer to a user function
 //          period in units (1/clockfreq)
 // Outputs: none
-void Timer1_Init(uint32_t rateOfSpawn);
+void Timer1_Init(void);
+void setSpawnRate(uint32_t rateOfSpawn);
 
 #endif // __TIMER2INTS_H__

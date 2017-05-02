@@ -1,10 +1,17 @@
 #include <stdint.h>
 #include "tm4c123gh6pm.h"
 #include "EntityDefinition.h"
+#include "ST7735.h"
+
+#define backgroundColor 0x38A7
 
 extern object entities[10];
+extern asteroid asteroidObjects[10];
 extern int32_t TerrainHeight[500];
-extern int8_t gameOver;
+extern int8_t crashed;
+extern int32_t windowLocation;
+extern int16_t fuel;
+extern uint32_t numberOfEntities;
 
 //lookup tables instantiated
 
@@ -93,12 +100,12 @@ void checkInteractions(uint32_t numberOfEntities){
 	
 	//collision has occured
 	for(i = 0; i < numberOfEntities; i++){
-		if(((entities[0].xPosition/100 + 22) < entities[i].xPosition/100 && (entities[0].xPosition/100 + 22) > (entities[i].xPosition/100 - 20)) || 
-			((entities[0].xPosition/100 + 8) < entities[i].xPosition/100 && (entities[0].xPosition/100 + 8) > (entities[i].xPosition/100 - 20))){
+		if(((entities[0].xPosition/100 + 22) < entities[i].xPosition/100 - 7 && (entities[0].xPosition/100 + 22) > (entities[i].xPosition/100 - 25)) || 
+			((entities[0].xPosition/100 + 8) < entities[i].xPosition/100 - 7 && (entities[0].xPosition/100 + 8) > (entities[i].xPosition/100 - 25))){
 			
-			if(((entities[0].yPosition/100 + 21) > entities[i].yPosition/100 && (entities[0].yPosition/100 + 21) < entities[i].yPosition/100 + 20) ||
-				((entities[0].yPosition/100 + 6) > entities[i].yPosition/100 && (entities[0].yPosition/100 + 6) < entities[i].yPosition/100 + 20)){
-					gameOver = 1;			
+			if(((entities[0].yPosition/100 + 21) > entities[i].yPosition/100 + 3 && (entities[0].yPosition/100 + 21) < entities[i].yPosition/100 + 22) ||
+				((entities[0].yPosition/100 + 6) > entities[i].yPosition/100 + 3 && (entities[0].yPosition/100 + 6) < entities[i].yPosition/100 + 22)){
+					crashed = 1;			
 				}
 				
 		}
@@ -116,6 +123,9 @@ void checkInteractions(uint32_t numberOfEntities){
 			entities[0].yVelocity += ((1000*gravityBetween)*((yDistanceBetween*1000)/directDistanceBetween))/1000000;		//add y component of gravityBetween to yVelocity
 		}
 	}
+	
+	
+	
 }
 
 //checks if lunar lander has collided with terrain
@@ -124,22 +134,24 @@ void checkInteractions(uint32_t numberOfEntities){
 void collisionDetection(int32_t shipAngle){
 	//if ship has landed
 	if(shipOnGround == 0 && ((entities[0].yPosition/100)+7) <= TerrainHeight[(entities[0].xPosition/100)+8] && ((entities[0].yPosition/100) + 7) <= TerrainHeight[(entities[0].xPosition/100) + 22] && shipOnGround == 0){
-		if(shipAngle == 90){
+		if(shipAngle == 90 && entities[0].yVelocity <= 50 && entities[0].yVelocity >= -60){
 			shipOnGround = 1;
 			entities[0].yVelocity = 0;
 			entities[0].xVelocity = 0;
 		}else{
-			gameOver = 1;
+			crashed = 1;
 		}
 	}
 	
 	//ships y and x position is at botttom left corner of buffer
 	//ship has crashed, if a bottom corner of the ship is below the terrain and the other isnt, then you're ship has crashed
-	if((entities[0].yPosition/100 + 6 <= TerrainHeight[(entities[0].xPosition/100) + 8]) && entities[0].yPosition/100 + 6 > TerrainHeight[(entities[0].xPosition)/100 + 22]){
-		gameOver = 1;
-	}
-	if((entities[0].yPosition/100 + 6 <= TerrainHeight[(entities[0].xPosition/100) + 22]) && entities[0].yPosition/100 + 6 > TerrainHeight[(entities[0].xPosition)/100 + 8]){
-		gameOver = 1;
+	if(entities[0].xPosition/100 + 22 < 500){
+		if((entities[0].yPosition/100 + 6 <= TerrainHeight[(entities[0].xPosition/100) + 8]) && entities[0].yPosition/100 + 6 > TerrainHeight[(entities[0].xPosition)/100 + 22]){
+			crashed = 1;
+		}
+		if((entities[0].yPosition/100 + 6 <= TerrainHeight[(entities[0].xPosition/100) + 22]) && entities[0].yPosition/100 + 6 > TerrainHeight[(entities[0].xPosition)/100 + 8]){
+			crashed = 1;
+		}
 	}
 	
 	//ship is about to take off
@@ -147,7 +159,10 @@ void collisionDetection(int32_t shipAngle){
 		shipOnGround = 0;
 	}
 	
-	//ship has collided with asteroids
+	//check if ship has flown off map
+	if(entities[0].yPosition > 14000 || entities[0].xPosition > 500000){
+		crashed = 2;
+	}
 	
 }
 
@@ -168,11 +183,66 @@ void updateVelocity(int32_t shipAngle, int32_t yThrust, uint32_t numberOfEntitie
 		entities[0].yVelocity += getYComponentVelocity(shipAngle, yThrust);
 		entities[0].xVelocity += getXComponentVelocity(shipAngle, yThrust);
 	}
-	collisionDetection(shipAngle);
+}
+
+
+void updateAsteroids(){
+	uint8_t i;
+	
+	//check if asteroid has collided with player ship, if not update that Ateroid's velocity
+	for(i = 0; i < 10; i++){
+		if(asteroidObjects[i].active == 1){
+			ST7735_FillRect((asteroidObjects[i].yPosition/100), (asteroidObjects[i].xPosition/100) - 15 - windowLocation, 15, 15, backgroundColor);
+			asteroidObjects[i].xPosition += asteroidObjects[i].xVelocity;
+			asteroidObjects[i].yPosition += asteroidObjects[i].yVelocity;
+			
+			if(((asteroidObjects[i].yPosition/100 > (entities[0].yPosition/100 + 6)) && (asteroidObjects[i].yPosition/100 < entities[0].yPosition/100 + 22))||
+				(asteroidObjects[i].yPosition/100 + 15 > entities[0].yPosition/100 + 6 && asteroidObjects[i].yPosition/100 + 15 < entities[0].yPosition/100 + 22)){
+				if((asteroidObjects[i].xPosition/100) > (entities[0].xPosition/100 + 8) && ((asteroidObjects[i].xPosition/100) < (entities[0].xPosition/100 + 22))){
+					asteroidObjects[i].active = 0;
+					crashed = 1;
+				}
+				if(((asteroidObjects[i].xPosition/100 - 15) < (entities[0].xPosition/100 + 22)) && asteroidObjects[i].xPosition/100 - 15 > (entities[0].xPosition/100 + 8)){
+					asteroidObjects[i].active = 0;
+					crashed = 1;
+				
+			}
+			if(asteroidObjects[i].yPosition/100 < TerrainHeight[asteroidObjects[i].xPosition/100]){
+				asteroidObjects[i].active = 0;
+			}
+			asteroidObjects[i].yVelocity -= GRAVITY;
+		}
+	//check If Asteroids have collided with Black Hole
+
+			uint8_t c;
+			for(c = 1; c < numberOfEntities; c++){
+				if((asteroidObjects[i].xPosition/100 > entities[c].xPosition/100 - 25 && asteroidObjects[i].xPosition/100 < entities[c].xPosition/100 - 7) || 
+					(asteroidObjects[i].xPosition/100 - 15 > entities[c].xPosition/100 - 25 && asteroidObjects[i].xPosition/100 < entities[c].xPosition/100 -7)){
+						
+						if(asteroidObjects[i].yPosition/100 < entities[c].yPosition/100 + 22 && asteroidObjects[i].yPosition/100 + 15 > entities[c].yPosition/100){
+							asteroidObjects[i].active = 0;
+						}
+					} 
+			}			
+		}
+	}
+}
+void checkShipLanded(){
+	if(shipOnGround == 1 && entities[0].xPosition > 40000){
+		crashed = 3;
+	}
+}
+
+void updateFuel(uint32_t yThrust){
+	fuel = fuel - (yThrust*3)/2000;
 }
 
 void updatePosition(int32_t shipAngle, int32_t yThrust, uint32_t numberOfEntities){
+	checkShipLanded();
 	updateVelocity(shipAngle, yThrust, numberOfEntities);
+	updateAsteroids();
+	updateFuel(yThrust);
+	collisionDetection(shipAngle);
 	entities[0].xPosition += entities[0].xVelocity;
 	entities[0].yPosition += entities[0].yVelocity;
 	
