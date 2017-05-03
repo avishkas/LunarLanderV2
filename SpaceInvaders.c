@@ -460,7 +460,7 @@ void SysTick_Handler(void){
 	static int32_t shipAngle;
 	
 	//if hover is activated, the ship starts to autocorrect----------!!!!!!!!!THIS CODE HAS NOT BEEN TESTED!!!!!!!!!!!1------------
-	if((GPIO_PORTF_DATA_R & 0x01) == 1){ //PF0 negative logic, so if button not pressed
+	if((GPIO_PORTB_DATA_R & 0x80) == 0){ //PF0 negative logic, so if button not pressed
 		yThrust = getYThrust();
 		entities[0].shipAngle = getShipAngle();
 		shipAngle = entities[0].shipAngle * 10;
@@ -560,11 +560,12 @@ int main(void){
 		
 	createPlayer();
 	
+	
 	EnableInterrupts();
   while(1){		
-		if((GPIO_PORTF_DATA_R & 0x10) == 0){
+		if((GPIO_PORTE_DATA_R & 0x02)){
 			disableUneededInterrupts();
-			while((GPIO_PORTF_DATA_R & 0x10) == 0){}
+			while((GPIO_PORTE_DATA_R & 0x02)){}
 			
 			if(currentDifficulty == Easy){
 				NVIC_ST_CTRL_R |= 0x07;
@@ -671,7 +672,7 @@ int main(void){
 			entities[0].yVelocity = 0;
 			
 			entities[0].xPosition = 1000;
-			entities[0].yPosition = 1000;
+			entities[0].yPosition = 750;
 			
 			ST7735_SetCursor(0,6);
 			ST7735_OutString("Cargo Successfuly \nTransported!");

@@ -27,7 +27,7 @@ void Sound_Init(void){
 	GPIO_PORTB_DEN_R |= 0x3F;
 };
 void Sound_Play(){
-	GPIO_PORTB_DATA_R = loop2[location]/4;
+	GPIO_PORTB_DATA_R = (loop2[location]/4) & (~(0x3F));
 	location = (location + 1)%56520;
 // write this
 };

@@ -20,13 +20,13 @@ void Delay100ms(uint32_t count){uint32_t volatile time;
 }
 
 void pollForRelease(void){
-	while((GPIO_PORTF_DATA_R & 0x10) == 0){
+	while((GPIO_PORTF_DATA_R & 0x80)){
 		seed += 1;
 	}
 }
 
 void pollForRelease2(void){
-	while((GPIO_PORTF_DATA_R & 0x01) == 0){
+	while((GPIO_PORTF_DATA_R & 0x08)){
 		seed += 1;
 	}
 }
@@ -36,9 +36,9 @@ void pollForInput(void){
 	ST7735_DrawBitmap(106, 70, asteroidRight, 15, 15);
 	
 	while(1){
-		if((GPIO_PORTF_DATA_R & 0x10) == 0){
+		if((GPIO_PORTB_DATA_R & 0x80)){
 			Delay100ms(1);
-			if((GPIO_PORTF_DATA_R & 0x10) == 0){
+			if((GPIO_PORTB_DATA_R & 0x80)){
 				pollForRelease();
 				selectedDifficulty = (selectedDifficulty + 1)%3;
 				if(selectedDifficulty == Easy){
@@ -53,7 +53,7 @@ void pollForInput(void){
 				}
 			}
 		}
-		if((GPIO_PORTF_DATA_R & 0x01) == 0){
+		if((GPIO_PORTE_DATA_R & 0x02)){
 				currentDifficulty = selectedDifficulty;
 				break;
 		}
